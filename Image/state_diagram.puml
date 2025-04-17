@@ -12,13 +12,22 @@ state luaParser {
 }
 
 state Converter #Lavender {
-  state "Visit AST Node" as visit #Lavender 
-  state "Map Types" as types #Lavender
-  state "Handle Scopes" as scopes #Lavender
-  
-  visit --> types
-  types --> scopes
+  state "Lua AST" as luaast_
+  state "Visit AST Node" as visit #Lavender {
+    state "Map Types" as types #Lavender
+    state "Handle Scopes" as scopes #Lavender
+    state "Evalue Expression" as evalue #Lavender
+    state "Add to Python AST" as add #Lavender
+     scopes --> types
+     scopes --> evalue
+     evalue --> add
+     types --> add
+  }
+  state "Python AST" as pyast_
+  luaast_ -> visit
+  visit -> pyast_
 }
+  
 
 state Unparser {
   state "Python AST" as pyast
@@ -31,18 +40,19 @@ state Execute #line.dashed;line.bold; {
 
 }
 
-[*] -> luaParser
-luaParser -> Converter
-Converter -> Unparser
-Unparser -> Execute
-Execute -> [*]
+[*] -> luaParser 
+luaParser -[#salmon,thickness=7]> Converter
+Converter -[#salmon,thickness=7]> Unparser
+Converter -[#salmon,dashed,thickness=7]> Execute
+Unparser --[hidden]> Execute
+' Execute -> [*]
 
 note bottom of luaParser
 Already available
 end note
 
 
-note bottom of Unparser
+note top of Unparser
 Already available
 end note
 
