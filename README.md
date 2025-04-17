@@ -10,7 +10,7 @@ pip install -r requirements.txt
 python3 compile.py <source_file>
 ```
 
-Example `python3 compile.py ./example/test.lua`
+Example `python3 compile.py ./example/basic_test.lua`
 
 ## Architecture
 
