@@ -1,0 +1,53 @@
+@startuml
+skinparam state {
+    BackgroundColor PapayaWhip
+    BorderColor DarkSlateGray
+}
+
+state luaParser {
+  state "Lua AST" as luaast
+  state "Lua Source Code" as luasource
+
+  luasource -> luaast
+}
+
+state Converter #Lavender {
+  state "Visit AST Node" as visit #Lavender 
+  state "Map Types" as types #Lavender
+  state "Handle Scopes" as scopes #Lavender
+  
+  visit --> types
+  types --> scopes
+}
+
+state Unparser {
+  state "Python AST" as pyast
+  state "Python Source Code" as pycode
+
+  pyast -> pycode
+}
+
+state Execute #line.dashed;line.bold; {
+
+}
+
+[*] -> luaParser
+luaParser -> Converter
+Converter -> Unparser
+Unparser -> Execute
+Execute -> [*]
+
+note bottom of luaParser
+Already available
+end note
+
+
+note bottom of Unparser
+Already available
+end note
+
+note bottom of Converter #LavenderBlush
+<b>Need Developing</b> (Not Finished)
+end note
+
+@enduml

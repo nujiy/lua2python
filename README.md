@@ -6,11 +6,15 @@ Lua-to-Python transpiler via AST manipulation: Parses Lua code, transforms its A
 ## How to Run
 
 ```shell
-pip install requirements.txt
+pip install -r requirements.txt
 python3 compile.py <source_file>
 ```
 
 Example `python3 compile.py ./example/test.lua`
+
+## Architecture
+
+![image](./Image/image.png)
 
 ## Roadmap
 
