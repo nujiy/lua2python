@@ -9,8 +9,9 @@ Lua-to-Python transpiler via AST manipulation: Parses Lua code, transforms its A
 pip install -r requirements.txt
 python3 compile.py <source_file>
 ```
+the output file will write to lua2python/output path
 
-Example `python3 compile.py ./example/basic_test.lua`
+Example `python3 compile.py ./example/basic_test.lua` will output to example/basic_test.lua
 
 ## Architecture
 
@@ -23,6 +24,8 @@ Example `python3 compile.py ./example/basic_test.lua`
 - [x] Numbers
 - [x] Strings
 - [x] Nil types
+- [x] Variable assignments
+- [x] Addition
 
 ## Referrence
 
