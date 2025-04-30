@@ -31,10 +31,11 @@ def run(source_file):
     py_ast_tree = py_converter.lua_ast_to_py_ast(lua_ast_tree)
 
     # dump python AST
-    # print(py_ast.dump(py_ast_tree))
+    print(py_ast.dump(py_ast_tree))
 
     # print python source code
     # print(astunparse.unparse(py_ast_tree))
+
     write_output(py_ast_tree, source_file)
 
     # run python ast

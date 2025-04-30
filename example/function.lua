@@ -1,4 +1,1 @@
-function bar(a, b, c)
-    print(a, b, c)
-    return (1 + 2)
-end
+num = bar(1, true)

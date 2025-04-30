@@ -40,9 +40,9 @@ Example `python3 compile.py ./example/basic_test.lua` will output to example/bas
 - [x] `not` logical operator
 - [x] comparison operators `>` `>=` `<` `<=` `==` `~=`
   
-- [ ] `function` declarations
-- [ ] `return`
-- [ ] Assign function return to variable
+- [x] `function` declarations
+- [x] `return`
+- [x] Assign function return to variable
 
 - [ ] `local` variables
 

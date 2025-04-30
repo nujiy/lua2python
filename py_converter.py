@@ -39,14 +39,24 @@ def lua_ast_to_py_ast(lua_tree):
     processed_nodes.clear()
     py_ast_tree = parse_tree(lua_tree)
 
-    if isinstance(py_ast_tree, list):
-        py_final_tree = py_ast.Module(body=[lua_truthy_func] + py_ast_tree)
+    if (need_lua_truthy(lua_tree)):
+        if isinstance(py_ast_tree, list):
+            py_final_tree = py_ast.Module(body=[lua_truthy_func] + py_ast_tree)
+        else:
+            py_final_tree = py_ast.Module(body=[lua_truthy_func, py_ast_tree])
     else:
-        py_final_tree = py_ast.Module(body=[lua_truthy_func, py_ast_tree])
+        py_final_tree = py_ast.Module(py_ast_tree)
 
     py_final_tree = py_ast.fix_missing_locations(py_final_tree)
 
     return py_final_tree
+
+
+def need_lua_truthy(lua_tree):
+    for node in lua_ast.walk(lua_tree):
+        if isinstance(node, (astnodes.If)):
+            return True
+        
 
 def parse_tree(lua_tree):
     # remove the leaf node
@@ -131,12 +141,10 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
         if isinstance(node, astnodes.Call):
             processed_nodes.add(id(node))
             out.append(
-                py_ast.Expr(
-                    value = py_ast.Call(
-                            func=py_ast.Name(id=node.func.id, ctx=py_ast.Load()),
-                            args=parse_nodes(node.args, ctx_klass=py_ast.Load),
-                            keywords=[]
-                    )
+                py_ast.Call(
+                    func=py_ast.Name(id=node.func.id, ctx=py_ast.Load()),
+                    args=parse_nodes(node.args, ctx_klass=py_ast.Load),
+                    keywords=[]
                 )
             )
             continue
@@ -220,6 +228,40 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
                 )
             )
             continue
+
+        if isinstance(node, astnodes.Function):
+            processed_nodes.add(id(node))
+            body_nodes = parse_nodes([node.body])
+            out.append(
+                py_ast.FunctionDef(
+                    name=node.name.id,
+                    args=py_ast.arguments(
+                        args=[
+                            py_ast.arg(
+                                arg = x.id,
+                                annotation = None,
+                            ) for x in node.args
+                        ],
+                        vararg=None,
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        kwarg=None,
+                        defaults=[]
+                    ),
+                    body=body_nodes,
+                    decorator_list=[],
+                )
+            )
+            continue
+
+        if isinstance(node, astnodes.Return):
+            processed_nodes.add(id(node))
+            out.append(
+                py_ast.Return(
+                    value=parse_nodes(node.values)
+                )
+            )
+            continue 
 
         if isinstance(node, astnodes.Name):
             processed_nodes.add(id(node))
