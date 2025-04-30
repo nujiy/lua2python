@@ -17,7 +17,11 @@ def parse_tree(lua_tree):
         if isinstance(node, (astnodes.Name, astnodes.Number, 
                             astnodes.TrueExpr, astnodes.FalseExpr,
                             astnodes.Comment, astnodes.String,
-                            astnodes.Nil, astnodes.AriOp)):
+                            astnodes.Nil, astnodes.AriOp,
+                            astnodes.GreaterThanOp, astnodes.GreaterOrEqThanOp,
+                            astnodes.LessThanOp, astnodes.LessOrEqThanOp,
+                            astnodes.EqToOp, astnodes.NotEqToOp,
+                            astnodes.Block)):
             continue
         filtered_nodes.append(node)
     return parse_nodes(filtered_nodes)
@@ -31,6 +35,14 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
             continue
 
         if isinstance(node, astnodes.Comment):
+            continue
+
+        if isinstance(node, astnodes.Block):
+            block = parse_nodes(node.body)
+            out.append(
+                block
+            )
+            # TODO handle `local` keyword
             continue
 
         if isinstance(node, astnodes.Assign):
@@ -93,7 +105,35 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
                 )
             )
             continue
+
+        if isinstance(node, astnodes.If):
+            test_nodes = parse_nodes([node.test])
+            body_nodes = parse_nodes([node.body])
+            else_nodes = parse_nodes([node.orelse])
+            out.append(
+                py_ast.If(
+                    test=test_nodes,
+                    body=body_nodes,
+                    orelse=else_nodes,
+                )
+            )
+            continue
         
+        # ">", ">=", "<", "<=", "==", "~="
+        if isinstance(node, astnodes.RelOp):
+            arg_left = parse_nodes([node.left])
+            arg_right = parse_nodes([node.right])
+            op_type = node.__class__.__name__
+            ops_ref = RELATIONAL_OPERATORS[op_type]()
+            out.append(
+                py_ast.Compare(
+                    left=arg_left,
+                    ops=[ops_ref],
+                    comparators=arg_right,
+                )
+            )
+            continue
+
         if isinstance(node, astnodes.Name):
             out.append(
                 py_ast.Name(id=node.id, ctx=ctx_klass())
@@ -109,4 +149,13 @@ ARITHMETIC_OPERATORS = {
     'FloorDivOp': py_ast.FloorDiv,
     'ModOp': py_ast.Mod,
     'ExpoOp': py_ast.Pow,
+}
+
+RELATIONAL_OPERATORS = {
+    'GreaterThanOp': py_ast.Gt,
+    'GreaterOrEqThanOp': py_ast.GtE,
+    'LessThanOp': py_ast.Lt,
+    'LessOrEqThanOp': py_ast.LtE,
+    'EqToOp': py_ast.Eq,
+    'NotEqToOp': py_ast.NotEq
 }

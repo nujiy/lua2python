@@ -21,22 +21,34 @@ Example `python3 compile.py ./example/basic_test.lua` will output to example/bas
 
 - [x] Single line comments
 - [x] Multiline comments
-- [x] Numbers
-- [x] Strings
+
+- [x] Number types
+- [x] String types
 - [x] Nil types
+- [x] Boolean types
 - [x] Variable assignments
+
 - [x] Addition
-- [ ] Multiplication
-- [ ] 引き算（Subtraction）
-- [ ] Boolean types
+- [x] Multiplication
+- [x] 引き算（Subtraction）
+- [ ] 割り算（division）
+
 - [ ] If statements
 - [ ] Nested if statements
+- [ ] `or` logical operator
+- [ ] `and` logical operator
+- [ ] `not` logical operator
+- [ ] comparison operators `>` `>=` `<` `<=` `==` `~=`
+  
 - [ ] `function` declarations
 - [ ] `return`
 - [ ] Assign function return to variable
-- [ ] `or` logical operator
-- [ ] `and` logical operator
+
 - [ ] `local` variables
+
+## TODO
+
+- handle astnodes.Block objec
 
 ## Referrence
 
