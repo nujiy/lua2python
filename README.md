@@ -1,5 +1,5 @@
 # lua2python
-Lua-to-Python transpiler via AST manipulation: Parses Lua code, transforms its AST to Python AST, and generates Python source. Built with luaparser and astunparse.
+A "Lua to Python" transpiler via AST manipulation: Parses Lua code, transforms its AST to Python AST, and generates Python source. Built with luaparser and astunparse.
 
 
 
@@ -26,6 +26,17 @@ Example `python3 compile.py ./example/basic_test.lua` will output to example/bas
 - [x] Nil types
 - [x] Variable assignments
 - [x] Addition
+- [ ] Multiplication
+- [ ] 引き算（Subtraction）
+- [ ] Boolean types
+- [ ] If statements
+- [ ] Nested if statements
+- [ ] `function` declarations
+- [ ] `return`
+- [ ] Assign function return to variable
+- [ ] `or` logical operator
+- [ ] `and` logical operator
+- [ ] `local` variables
 
 ## Referrence
 
