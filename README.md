@@ -33,12 +33,12 @@ Example `python3 compile.py ./example/basic_test.lua` will output to example/bas
 - [x] 引き算（Subtraction）
 - [ ] 割り算（division）
 
-- [ ] If statements
-- [ ] Nested if statements
-- [ ] `or` logical operator
-- [ ] `and` logical operator
-- [ ] `not` logical operator
-- [ ] comparison operators `>` `>=` `<` `<=` `==` `~=`
+- [x] If statements
+- [x] Nested if statements
+- [x] `or` logical operator
+- [x] `and` logical operator
+- [x] `not` logical operator
+- [x] comparison operators `>` `>=` `<` `<=` `==` `~=`
   
 - [ ] `function` declarations
 - [ ] `return`

@@ -1,7 +1,7 @@
 num = 42
 factor = 2
 flag = true
-s = 'walternate'  -- Immutable strings like Python.
+s = 'walternate' -- Immutable strings like Python.
 t = nil
 
 -- i = 12 single comment

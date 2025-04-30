@@ -2,10 +2,48 @@ import ast as py_ast
 from luaparser import ast as lua_ast
 from luaparser import astnodes
 
+processed_nodes = set()
+
 def lua_ast_to_py_ast(lua_tree):
+    lua_truthy_func = py_ast.FunctionDef(
+        name='lua_truthy',
+        args=py_ast.arguments(
+            posonlyargs=[],
+            args=[py_ast.arg(arg='value', annotation=None)],
+            kwonlyargs=[],
+            kw_defaults=[],
+            defaults=[],
+        ),
+        body=[
+            py_ast.Return(
+                value=py_ast.BoolOp(
+                    op=py_ast.And(),
+                    values=[
+                        py_ast.Compare(
+                            left=py_ast.Name(id='value', ctx=py_ast.Load()),
+                            ops=[py_ast.IsNot()],
+                            comparators=[py_ast.Constant(value=None)]
+                        ),
+                        py_ast.Compare(
+                            left=py_ast.Name(id='value', ctx=py_ast.Load()),
+                            ops=[py_ast.IsNot()],
+                            comparators=[py_ast.Constant(value=False)]
+                        )
+                    ]
+                )
+            )
+        ],
+        decorator_list=[],
+    )
+    global processed_nodes
+    processed_nodes.clear()
     py_ast_tree = parse_tree(lua_tree)
 
-    py_final_tree = py_ast.Module(py_ast_tree)
+    if isinstance(py_ast_tree, list):
+        py_final_tree = py_ast.Module(body=[lua_truthy_func] + py_ast_tree)
+    else:
+        py_final_tree = py_ast.Module(body=[lua_truthy_func, py_ast_tree])
+
     py_final_tree = py_ast.fix_missing_locations(py_final_tree)
 
     return py_final_tree
@@ -27,9 +65,13 @@ def parse_tree(lua_tree):
     return parse_nodes(filtered_nodes)
 
 def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
+    global processed_nodes
     out = []
     while len(lua_nodes) > 0:
         node = lua_nodes.pop(0)
+
+        if id(node) in processed_nodes:
+            continue
 
         if isinstance(node, astnodes.Chunk):
             continue
@@ -38,6 +80,7 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
             continue
 
         if isinstance(node, astnodes.Block):
+            processed_nodes.add(id(node))
             block = parse_nodes(node.body)
             out.append(
                 block
@@ -46,6 +89,7 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
             continue
 
         if isinstance(node, astnodes.Assign):
+            processed_nodes.add(id(node))
             target_expr = parse_nodes(node.targets, ctx_klass=py_ast.Store)
             value_expr = parse_nodes(node.values)
 
@@ -58,28 +102,34 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
             continue
 
         if isinstance(node, astnodes.Number):
+            processed_nodes.add(id(node))
             # ast.Num will be removed in future Python releases
             # out.append(py_ast.Num(n=node.n))
             out.append(py_ast.Constant(value=node.n))
             continue
         
         if isinstance(node, astnodes.TrueExpr):
+            processed_nodes.add(id(node))
             out.append(py_ast.Constant(True))
             continue
         
         if isinstance(node, astnodes.FalseExpr):
+            processed_nodes.add(id(node))
             out.append(py_ast.Constant(True))
             continue
         
         if isinstance(node, astnodes.String):
+            processed_nodes.add(id(node))
             out.append(py_ast.Constant(node.s))
             continue
 
         if isinstance(node, astnodes.Nil):
+            processed_nodes.add(id(node))
             out.append(py_ast.Constant(value=None))
             continue
         
         if isinstance(node, astnodes.Call):
+            processed_nodes.add(id(node))
             out.append(
                 py_ast.Expr(
                     value = py_ast.Call(
@@ -92,10 +142,11 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
             continue
         
         if isinstance(node, astnodes.AriOp):
+            processed_nodes.add(id(node))
             arg_left = parse_nodes([node.left])
             arg_right = parse_nodes([node.right])
-            op_type = node.__class__.__name__
-            ops_ref = ARITHMETIC_OPERATORS[op_type]()
+            ops_type = node.__class__.__name__
+            ops_ref = ARITHMETIC_OPERATORS[ops_type]()
             # other Arithmetic Operators
             out.append(
                 py_ast.BinOp(
@@ -107,12 +158,19 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
             continue
 
         if isinstance(node, astnodes.If):
+            processed_nodes.add(id(node))
             test_nodes = parse_nodes([node.test])
             body_nodes = parse_nodes([node.body])
             else_nodes = parse_nodes([node.orelse])
+            wrapped_test = py_ast.Call(
+                func=py_ast.Name(id='lua_truthy', ctx=py_ast.Load()),
+                args=[test_nodes],  # test_nodes
+                keywords=[]
+            )
+
             out.append(
                 py_ast.If(
-                    test=test_nodes,
+                    test=wrapped_test,
                     body=body_nodes,
                     orelse=else_nodes,
                 )
@@ -121,10 +179,11 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
         
         # ">", ">=", "<", "<=", "==", "~="
         if isinstance(node, astnodes.RelOp):
+            processed_nodes.add(id(node))
             arg_left = parse_nodes([node.left])
             arg_right = parse_nodes([node.right])
-            op_type = node.__class__.__name__
-            ops_ref = RELATIONAL_OPERATORS[op_type]()
+            ops_type = node.__class__.__name__
+            ops_ref = RELATIONAL_OPERATORS[ops_type]()
             out.append(
                 py_ast.Compare(
                     left=arg_left,
@@ -134,7 +193,36 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
             )
             continue
 
+        if isinstance(node, astnodes.LoOp):
+            processed_nodes.add(id(node))
+            arg_left = parse_nodes([node.left])
+            arg_right = parse_nodes([node.right])
+            ops_type = node.__class__.__name__
+            ops_ref = LOGICAL_OPERATORS[ops_type]()
+            out.append(
+                py_ast.BoolOp(
+                    op=ops_ref,
+                    values=[
+                        arg_left,
+                        arg_right
+                    ]
+                )
+            )
+            continue
+
+        if isinstance(node, astnodes.ULNotOp):
+            processed_nodes.add(id(node))
+            operand = parse_nodes([node.operand])
+            out.append(
+                py_ast.UnaryOp(
+                    op=py_ast.Not(),
+                    operand=operand
+                )
+            )
+            continue
+
         if isinstance(node, astnodes.Name):
+            processed_nodes.add(id(node))
             out.append(
                 py_ast.Name(id=node.id, ctx=ctx_klass())
             )
@@ -159,3 +247,11 @@ RELATIONAL_OPERATORS = {
     'EqToOp': py_ast.Eq,
     'NotEqToOp': py_ast.NotEq
 }
+
+LOGICAL_OPERATORS = {
+    'AndLoOp': py_ast.And,
+    'OrLoOp': py_ast.Or,
+}
+
+def lua_truthy(value):
+    return value is not None and value is not False
