@@ -37,9 +37,11 @@ def lua_ast_to_py_ast(lua_tree):
     )
     global processed_nodes
     processed_nodes.clear()
-    py_ast_tree = parse_tree(lua_tree)
+    lua_nodes = parse_tree(lua_tree)
+    need_lua_truthy_= need_lua_truthy(lua_nodes)
+    py_ast_tree = parse_nodes(lua_nodes)
 
-    if (need_lua_truthy(lua_tree)):
+    if need_lua_truthy_:
         if isinstance(py_ast_tree, list):
             py_final_tree = py_ast.Module(body=[lua_truthy_func] + py_ast_tree)
         else:
@@ -52,27 +54,18 @@ def lua_ast_to_py_ast(lua_tree):
     return py_final_tree
 
 
-def need_lua_truthy(lua_tree):
-    for node in lua_ast.walk(lua_tree):
+def need_lua_truthy(lua_nodes):
+    for node in lua_nodes:
         if isinstance(node, (astnodes.If)):
             return True
+    return False
         
 
 def parse_tree(lua_tree):
-    # remove the leaf node
-    filtered_nodes = []
+    lua_nodes = []
     for node in lua_ast.walk(lua_tree):
-        if isinstance(node, (astnodes.Name, astnodes.Number, 
-                            astnodes.TrueExpr, astnodes.FalseExpr,
-                            astnodes.Comment, astnodes.String,
-                            astnodes.Nil, astnodes.AriOp,
-                            astnodes.GreaterThanOp, astnodes.GreaterOrEqThanOp,
-                            astnodes.LessThanOp, astnodes.LessOrEqThanOp,
-                            astnodes.EqToOp, astnodes.NotEqToOp,
-                            astnodes.Block)):
-            continue
-        filtered_nodes.append(node)
-    return parse_nodes(filtered_nodes)
+        lua_nodes.append(node)
+    return lua_nodes
 
 def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
     global processed_nodes
@@ -92,8 +85,9 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
         if isinstance(node, astnodes.Block):
             processed_nodes.add(id(node))
             block = parse_nodes(node.body)
+            wrap_expr = lambda x: py_ast.Expr(value=x) if isinstance(x, py_ast.Call) else x
             out.append(
-                block
+                [wrap_expr(elem) for elem in block]
             )
             # TODO handle `local` keyword
             continue
@@ -140,6 +134,7 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
         
         if isinstance(node, astnodes.Call):
             processed_nodes.add(id(node))
+            processed_nodes.add(id(node.func))
             out.append(
                 py_ast.Call(
                     func=py_ast.Name(id=node.func.id, ctx=py_ast.Load()),
@@ -231,6 +226,7 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
 
         if isinstance(node, astnodes.Function):
             processed_nodes.add(id(node))
+            processed_nodes.add(id(node.name))
             body_nodes = parse_nodes([node.body])
             out.append(
                 py_ast.FunctionDef(
@@ -240,7 +236,7 @@ def parse_nodes(lua_nodes, ctx_klass = py_ast.Load):
                             py_ast.arg(
                                 arg = x.id,
                                 annotation = None,
-                            ) for x in node.args
+                            ) for x in node.args if not processed_nodes.add(id(x)) or True
                         ],
                         vararg=None,
                         kwonlyargs=[],
